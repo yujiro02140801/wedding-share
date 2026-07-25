@@ -93,22 +93,32 @@
     cursor: pointer;
   }
 
-  /* モーダル（拡大画像） */
+  /* モーダル（絶対に後ろにタップが抜けない） */
   #modal {
     display: none;
     position: fixed;
     top: 0; left: 0;
     width: 100%; height: 100%;
-    background: rgba(0,0,0,0.8);
+    background: rgba(0,0,0,0.85);
     justify-content: center;
     align-items: center;
-    z-index: 999;
+    z-index: 99999;
+
+    /* ★ 後ろの画面を完全にブロックする */
+    pointer-events: auto;
   }
 
-  #modal img {
+  #modal-inner {
+    pointer-events: none; /* 内側は一旦無効化 */
+  }
+
+  #modal-img {
     width: 90%;
     max-width: 600px;
     border-radius: 12px;
+
+    /* ★ 画像だけタップ可能にする */
+    pointer-events: auto;
   }
 
   /* ローディングスピナー */
@@ -158,8 +168,10 @@
 </section>
 
 <!-- モーダル（背景タップで閉じる） -->
-<div id="modal" onclick="closeModal()">
-  <img id="modal-img">
+<div id="modal">
+  <div id="modal-inner">
+    <img id="modal-img">
+  </div>
 </div>
 
 <script type="module">
@@ -262,13 +274,20 @@
   // モーダル（拡大画像）
   // -------------------------
   function openModal(url) {
-    document.getElementById("modal-img").src = url;
-    document.getElementById("modal").style.display = "flex";
+    const modal = document.getElementById("modal");
+    const img = document.getElementById("modal-img");
+
+    img.src = url;
+    modal.style.display = "flex";
   }
 
-  function closeModal() {
+  // -------------------------
+  // モーダル閉じる（背景タップで閉じる）
+  // -------------------------
+  document.getElementById("modal").addEventListener("click", () => {
     document.getElementById("modal").style.display = "none";
-  }
+  });
+
 </script>
 
 </body>
