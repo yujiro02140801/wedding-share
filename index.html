@@ -95,7 +95,7 @@
     object-fit: cover;
   }
 
-  /* モーダル（画像・動画拡大表示） */
+  /* モーダル */
   #modal {
     display: none;
     position: fixed;
@@ -115,6 +115,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
+    position: relative;
   }
 
   #modal-img,
@@ -128,6 +129,16 @@
 
   #modal-video {
     width: 100%;
+  }
+
+  /* 動画保存用の透明リンク */
+  #video-save-link {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 999999;
+    pointer-events: auto;
+    opacity: 0;
   }
 
   /* ローディングスピナー */
@@ -163,7 +174,6 @@
     <input type="file" id="fileInput" multiple>
     <button id="uploadBtn" onclick="upload()">アップロード</button>
 
-    <!-- くるくるスピナー -->
     <div id="uploadSpinner" style="display:none;">
       <div class="spinner"></div>
       <p>アップロード中…</p>
@@ -176,11 +186,14 @@
   <div id="gallery"></div>
 </section>
 
-<!-- モーダル（画像・動画拡大表示） -->
+<!-- モーダル -->
 <div id="modal">
   <div id="modal-inner">
     <img id="modal-img" style="display:none;">
     <video id="modal-video" controls playsinline style="display:none;"></video>
+
+    <!-- 動画保存用透明リンク -->
+    <a id="video-save-link" href="" download></a>
   </div>
 </div>
 
@@ -192,9 +205,6 @@
     "sb_publishable_y1QC6bHQOrROInEUhJnGvA_Q8xjkTuU"
   );
 
-  // -------------------------
-  // タブ切り替え
-  // -------------------------
   const tabUpload = document.getElementById("tab-upload");
   const tabGallery = document.getElementById("tab-gallery");
   const uploadSection = document.getElementById("upload-section");
@@ -215,9 +225,6 @@
     loadImages();
   };
 
-  // -------------------------
-  // アップロード処理（くるくる付き）
-  // -------------------------
   window.upload = async () => {
     const files = document.getElementById("fileInput").files;
     const uploadBtn = document.getElementById("uploadBtn");
@@ -230,7 +237,6 @@
 
     for (const file of files) {
       const filePath = `uploads/${Date.now()}_${file.name}`;
-
       const { error } = await supabase.storage
         .from("wedding-share")
         .upload(filePath, file);
@@ -249,9 +255,6 @@
     alert("アップロード完了！");
   };
 
-  // -------------------------
-  // ギャラリー読み込み（画像＋動画）
-  // -------------------------
   async function loadImages() {
     const { data, error } = await supabase.storage
       .from("wedding-share")
@@ -292,13 +295,11 @@
     }
   }
 
-  // -------------------------
-  // モーダル（画像・動画拡大表示）
-  // -------------------------
   const modal = document.getElementById("modal");
   const modalImg = document.getElementById("modal-img");
   const modalVideo = document.getElementById("modal-video");
   const modalInner = document.getElementById("modal-inner");
+  const videoSaveLink = document.getElementById("video-save-link");
 
   function openModal(url, isVideo = false) {
     if (isVideo) {
@@ -307,11 +308,16 @@
       modalVideo.src = url;
       modalVideo.load();
       modalVideo.play();
+
+      videoSaveLink.href = url;
+      videoSaveLink.style.display = "block";
     } else {
       modalVideo.pause();
       modalVideo.style.display = "none";
       modalImg.style.display = "block";
       modalImg.src = url;
+
+      videoSaveLink.style.display = "none";
     }
     modal.style.display = "flex";
   }
@@ -321,45 +327,27 @@
     modalVideo.pause();
   }
 
-  // 背景タップで閉じる
-  modal.addEventListener("click", () => {
-    closeModal();
-  });
+  modal.addEventListener("click", () => closeModal());
+  modalInner.addEventListener("click", (e) => e.stopPropagation());
 
-  // 中身タップは閉じない（動画操作できるように）
-  modalInner.addEventListener("click", (e) => {
-    e.stopPropagation();
-  });
-
-  // -------------------------
-  // スワイプで閉じる（画像・動画の上で上方向スワイプ）
-  // -------------------------
   let startY = null;
 
-  function attachSwipeClose(el) {
-    el.addEventListener("touchstart", (e) => {
-      if (e.touches.length > 0) {
-        startY = e.touches[0].clientY;
-      }
-    });
+  modal.addEventListener("touchstart", (e) => {
+    startY = e.touches[0].clientY;
+  });
 
-    el.addEventListener("touchmove", (e) => {
-      if (startY === null) return;
-      const currentY = e.touches[0].clientY;
-      if (startY - currentY > 50) {
-        // 上方向に50px以上スワイプしたら閉じる
-        closeModal();
-        startY = null;
-      }
-    });
-
-    el.addEventListener("touchend", () => {
+  modal.addEventListener("touchmove", (e) => {
+    if (startY === null) return;
+    const currentY = e.touches[0].clientY;
+    if (startY - currentY > 50) {
+      closeModal();
       startY = null;
-    });
-  }
+    }
+  });
 
-  attachSwipeClose(modalImg);
-  attachSwipeClose(modalVideo);
+  modal.addEventListener("touchend", () => {
+    startY = null;
+  });
 </script>
 
 </body>
