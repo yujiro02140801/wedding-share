@@ -4,15 +4,14 @@
 <meta charset="UTF-8">
 <title>Wedding Share</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <style>
   body {
     font-family: 'Helvetica', sans-serif;
     margin: 0;
     background: #fff5f8;
     font-size: 20px;
+    user-select: none;
   }
-
   header {
     background: linear-gradient(135deg, #ff7eb3, #ff758c);
     padding: 25px;
@@ -21,14 +20,12 @@
     font-size: 28px;
     font-weight: bold;
   }
-
   nav {
     display: flex;
     justify-content: center;
     background: white;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   }
-
   nav button {
     padding: 18px 30px;
     border: none;
@@ -37,22 +34,18 @@
     cursor: pointer;
     transition: 0.3s;
   }
-
   nav button.active {
     border-bottom: 4px solid #ff758c;
     color: #ff758c;
     font-weight: bold;
   }
-
   section {
     display: none;
     padding: 20px;
   }
-
   section.active {
     display: block;
   }
-
   .upload-box {
     background: white;
     padding: 25px;
@@ -62,12 +55,10 @@
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     text-align: center;
   }
-
   .upload-box input {
     margin-bottom: 15px;
     font-size: 18px;
   }
-
   .upload-box button {
     background: #ff758c;
     color: white;
@@ -77,17 +68,16 @@
     cursor: pointer;
     font-size: 20px;
   }
-
   #gallery {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
   }
-
   #gallery img,
   #gallery video {
     width: 45%;
     max-width: 180px;
+    height: 180px;
     margin: 10px;
     border-radius: 12px;
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
@@ -101,38 +91,60 @@
     position: fixed;
     top: 0; left: 0;
     width: 100%; height: 100%;
-    background: rgba(0,0,0,0.85);
+    background: rgba(0,0,0,0.9);
     justify-content: center;
     align-items: center;
     z-index: 99999;
-    pointer-events: auto;
   }
-
   #modal-inner {
-    pointer-events: none;
     max-width: 90%;
-    max-height: 90%;
+    max-height: 80%;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     position: relative;
   }
-
   #modal-img,
   #modal-video {
-    pointer-events: auto;
     max-width: 100%;
-    max-height: 100%;
+    max-height: 70vh;
     border-radius: 12px;
     background: black;
   }
-
   #modal-video {
     width: 100%;
   }
 
-  /* 動画保存ボタン */
+  /* 閉じるボタン */
+  .close-btn {
+    position: absolute;
+    top: -40px;
+    right: 0;
+    color: white;
+    font-size: 32px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  /* 前へ・次へボタン */
+  .nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.3);
+    color: white;
+    border: none;
+    font-size: 28px;
+    padding: 15px 10px;
+    cursor: pointer;
+    border-radius: 8px;
+    z-index: 100000;
+  }
+  .prev-btn { left: 10px; }
+  .next-btn { right: 10px; }
+
+  /* 保存・共有ボタン */
   #save-video-btn {
     display: none;
     margin-top: 15px;
@@ -140,10 +152,9 @@
     color: white;
     padding: 12px 25px;
     border-radius: 8px;
-    font-size: 20px;
-    pointer-events: auto;
+    font-size: 18px;
+    border: none;
     cursor: pointer;
-    text-decoration: none;
   }
 
   /* ローディングスピナー */
@@ -156,36 +167,29 @@
     animation: spin 1s linear infinite;
     margin: 20px auto;
   }
-
   @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
   }
 </style>
 </head>
-
 <body>
-
 <header>Wedding Share</header>
-
 <nav>
   <button id="tab-upload" class="active">アップロード</button>
   <button id="tab-gallery">写真一覧</button>
 </nav>
-
 <section id="upload-section" class="active">
   <div class="upload-box">
     <h3>写真・動画をアップロード</h3>
-    <input type="file" id="fileInput" multiple>
+    <input type="file" id="fileInput" multiple accept="image/*,video/*">
     <button id="uploadBtn" onclick="upload()">アップロード</button>
-
     <div id="uploadSpinner" style="display:none;">
       <div class="spinner"></div>
       <p>アップロード中…</p>
     </div>
   </div>
 </section>
-
 <section id="gallery-section">
   <h3>アップロードされた写真・動画一覧</h3>
   <div id="gallery"></div>
@@ -193,18 +197,19 @@
 
 <!-- モーダル -->
 <div id="modal">
+  <button class="nav-btn prev-btn" id="prev-btn">❮</button>
+  <button class="nav-btn next-btn" id="next-btn">❯</button>
+
   <div id="modal-inner">
+    <span class="close-btn" id="close-btn">&times;</span>
     <img id="modal-img" style="display:none;">
     <video id="modal-video" controls playsinline style="display:none;"></video>
-
-    <!-- 動画保存ボタン -->
-    <a id="save-video-btn" download>動画を保存</a>
+    <button id="save-video-btn">動画を共有・保存</button>
   </div>
 </div>
 
 <script type="module">
   import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
   const supabase = createClient(
     "https://jqykasmtocwykzaunafp.supabase.co",
     "sb_publishable_y1QC6bHQOrROInEUhJnGvA_Q8xjkTuU"
@@ -234,7 +239,6 @@
     const files = document.getElementById("fileInput").files;
     const uploadBtn = document.getElementById("uploadBtn");
     const spinner = document.getElementById("uploadSpinner");
-
     if (!files.length) return alert("ファイルを選んでください");
 
     uploadBtn.style.display = "none";
@@ -253,12 +257,14 @@
         return;
       }
     }
-
     spinner.style.display = "none";
     uploadBtn.style.display = "block";
-
     alert("アップロード完了！");
   };
+
+  // 全メディアを保持する配列と現在インデックス
+  let mediaList = [];
+  let currentIndex = 0;
 
   async function loadImages() {
     const { data, error } = await supabase.storage
@@ -266,21 +272,24 @@
       .list("uploads/", { limit: 200 });
 
     if (error) {
-      document.getElementById("gallery").innerText =
-        "読み込みエラー: " + error.message;
+      document.getElementById("gallery").innerText = "読み込みエラー: " + error.message;
       return;
     }
 
     const gallery = document.getElementById("gallery");
     gallery.innerHTML = "";
+    mediaList = [];
 
-    for (const file of data) {
+    data.forEach((file, index) => {
       const { data: urlData } = supabase.storage
         .from("wedding-share")
         .getPublicUrl("uploads/" + file.name);
 
       const url = urlData.publicUrl;
       const isVideo = /\.(mp4|mov|webm)$/i.test(file.name);
+
+      const item = { url, isVideo };
+      mediaList.push(item);
 
       if (isVideo) {
         const video = document.createElement("video");
@@ -289,39 +298,39 @@
         video.playsInline = true;
         video.loop = true;
         video.autoplay = true;
-        video.addEventListener("click", () => openModal(url, true));
+        video.addEventListener("click", () => openModal(index));
         gallery.appendChild(video);
       } else {
         const img = document.createElement("img");
         img.src = url;
-        img.addEventListener("click", () => openModal(url, false));
+        img.addEventListener("click", () => openModal(index));
         gallery.appendChild(img);
       }
-    }
+    });
   }
 
   const modal = document.getElementById("modal");
   const modalImg = document.getElementById("modal-img");
   const modalVideo = document.getElementById("modal-video");
-  const modalInner = document.getElementById("modal-inner");
   const saveVideoBtn = document.getElementById("save-video-btn");
 
-  function openModal(url, isVideo = false) {
-    if (isVideo) {
+  function openModal(index) {
+    if (index < 0 || index >= mediaList.length) return;
+    currentIndex = index;
+    const item = mediaList[currentIndex];
+
+    if (item.isVideo) {
       modalImg.style.display = "none";
       modalVideo.style.display = "block";
-      modalVideo.src = url;
+      modalVideo.src = item.url;
       modalVideo.load();
       modalVideo.play();
-
-      saveVideoBtn.href = url;
-      saveVideoBtn.style.display = "inline-block";
+      saveVideoBtn.style.display = "block";
     } else {
       modalVideo.pause();
       modalVideo.style.display = "none";
       modalImg.style.display = "block";
-      modalImg.src = url;
-
+      modalImg.src = item.url;
       saveVideoBtn.style.display = "none";
     }
     modal.style.display = "flex";
@@ -332,28 +341,87 @@
     modalVideo.pause();
   }
 
-  modal.addEventListener("click", () => closeModal());
-  modalInner.addEventListener("click", (e) => e.stopPropagation());
+  function showNext() {
+    if (currentIndex < mediaList.length - 1) {
+      openModal(currentIndex + 1);
+    } else {
+      openModal(0); // 最後に達したら最初へ
+    }
+  }
 
-  let startY = null;
+  function showPrev() {
+    if (currentIndex > 0) {
+      openModal(currentIndex - 1);
+    } else {
+      openModal(mediaList.length - 1); // 最初に達したら最後へ
+    }
+  }
 
-  modal.addEventListener("touchstart", (e) => {
-    startY = e.touches[0].clientY;
+  // ボタンイベント登録
+  document.getElementById("close-btn").addEventListener("click", closeModal);
+  document.getElementById("next-btn").addEventListener("click", (e) => {
+    e.stopPropagation();
+    showNext();
+  });
+  document.getElementById("prev-btn").addEventListener("click", (e) => {
+    e.stopPropagation();
+    showPrev();
   });
 
-  modal.addEventListener("touchmove", (e) => {
-    if (startY === null) return;
-    const currentY = e.touches[0].clientY;
-    if (startY - currentY > 50) {
-      closeModal();
-      startY = null;
+  // モーダルの背景クリックで閉じる
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) closeModal();
+  });
+
+  // 動画共有・ダウンロードの処理（Web Share API / 直接保存）
+  saveVideoBtn.addEventListener("click", async () => {
+    const currentItem = mediaList[currentIndex];
+    if (!currentItem || !currentItem.isVideo) return;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: '動画を保存・共有',
+          url: currentItem.url
+        });
+      } catch (err) {
+        console.log('共有がキャンセルまたは失敗しました:', err);
+      }
+    } else {
+      // 共有機能が非対応の場合はブラウザで動画を直接開く
+      window.open(currentItem.url, '_blank');
     }
   });
 
-  modal.addEventListener("touchend", () => {
-    startY = null;
+  // 左右スワイプ操作（タッチイベント）
+  let startX = 0;
+  let startY = 0;
+
+  modal.addEventListener("touchstart", (e) => {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+  });
+
+  modal.addEventListener("touchend", (e) => {
+    const endX = e.changedTouches[0].clientX;
+    const endY = e.changedTouches[0].clientY;
+
+    const diffX = startX - endX;
+    const diffY = startY - endY;
+
+    // 横方向の移動距離が縦方向より大きい場合のみスワイプと判定
+    if (Math.abs(diffX) > Math.abs(diffY)) {
+      if (diffX > 40) {
+        showNext(); // 左スワイプで次へ
+      } else if (diffX < -40) {
+        showPrev(); // 右スワイプで前へ
+      }
+    } else {
+      if (diffY > 60) {
+        closeModal(); // 上スワイプで閉じる
+      }
+    }
   });
 </script>
-
 </body>
 </html>
