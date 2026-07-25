@@ -181,9 +181,32 @@
 
 <!-- モーダル -->
 <div id="modal" onclick="closeModal()">
-  <div id="modal-content" onclick="event.stopPropagation()">
-    <div id="modal-close" onclick="event.stopPropagation(); closeModal();">×</div>
-    <img id="modal-img">
+  <div id="modal-content" onclick="event.stopPropagation()" style="position: relative;">
+    
+    <!-- ★ 画像の上に絶対配置する × ボタン -->
+    <div id="modal-close"
+         onclick="event.stopPropagation(); closeModal();"
+         style="
+           position: absolute;
+           top: 10px;
+           right: 10px;
+           background: white;
+           color: #ff758c;
+           font-size: 32px;
+           font-weight: bold;
+           width: 50px;
+           height: 50px;
+           border-radius: 50%;
+           text-align: center;
+           line-height: 50px;
+           cursor: pointer;
+           z-index: 9999;   /* ← これが重要！ */
+           box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+         ">
+      ×
+    </div>
+
+    <img id="modal-img" style="width: 90%; max-width: 600px; border-radius: 12px;">
   </div>
 </div>
 
