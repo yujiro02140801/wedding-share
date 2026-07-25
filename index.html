@@ -105,10 +105,32 @@
     z-index: 999;
   }
 
-  #modal img {
+  #modal-content {
+    position: relative;
+  }
+
+  #modal-img {
     width: 90%;
     max-width: 600px;
     border-radius: 12px;
+  }
+
+  /* × ボタン */
+  #modal-close {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    background: white;
+    color: #ff758c;
+    font-size: 32px;
+    font-weight: bold;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 50px;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
   }
 
   /* ローディングスピナー */
@@ -157,7 +179,10 @@
 
 <!-- モーダル -->
 <div id="modal" onclick="closeModal()">
-  <img id="modal-img">
+  <div id="modal-content" onclick="event.stopPropagation()">
+    <div id="modal-close" onclick="closeModal()">×</div>
+    <img id="modal-img">
+  </div>
 </div>
 
 <script type="module">
@@ -201,81 +226,10 @@
 
     if (!files.length) return alert("ファイルを選んでください");
 
-    // UIローディング開始
     uploadBtn.style.display = "none";
     spinner.style.display = "block";
-
-    let count = 1;
-    const total = files.length;
 
     for (const file of files) {
       const filePath = `uploads/${Date.now()}_${file.name}`;
 
-      const { error } = await supabase.storage
-        .from("wedding-share")
-        .upload(filePath, file);
-
-      if (error) {
-        alert("アップロード失敗: " + error.message);
-        uploadBtn.style.display = "block";
-        spinner.style.display = "none";
-        return;
-      }
-
-      count++;
-    }
-
-    // 完了
-    spinner.style.display = "none";
-    uploadBtn.style.display = "block";
-
-    // 自動で写真一覧へ移動
-    tabGallery.click();
-  };
-
-  // -------------------------
-  // ギャラリー読み込み
-  // -------------------------
-  async function loadImages() {
-    const { data, error } = await supabase.storage
-      .from("wedding-share")
-      .list("uploads/", { limit: 200 });
-
-    if (error) {
-      document.getElementById("gallery").innerText =
-        "読み込みエラー: " + error.message;
-      return;
-    }
-
-    const gallery = document.getElementById("gallery");
-    gallery.innerHTML = "";
-
-    for (const file of data) {
-      const { data: urlData } = supabase.storage
-        .from("wedding-share")
-        .getPublicUrl("uploads/" + file.name);
-
-      const img = document.createElement("img");
-      img.src = urlData.publicUrl;
-
-      img.onclick = () => openModal(urlData.publicUrl);
-
-      gallery.appendChild(img);
-    }
-  }
-
-  // -------------------------
-  // モーダル（拡大画像）
-  // -------------------------
-  function openModal(url) {
-    document.getElementById("modal-img").src = url;
-    document.getElementById("modal").style.display = "flex";
-  }
-
-  function closeModal() {
-    document.getElementById("modal").style.display = "none";
-  }
-</script>
-
-</body>
-</html>
+      const
