@@ -280,7 +280,12 @@
     gallery.innerHTML = "";
     mediaList = [];
 
-    data.forEach((file, index) => {
+    // 画像または動画の拡張子を持つファイルだけを抽出（大文字小文字に対応）
+    const validFiles = data.filter(file => 
+      /\.(jpg|jpeg|png|gif|webp|heic|mp4|mov|webm)$/i.test(file.name)
+    );
+
+    validFiles.forEach((file) => {
       const { data: urlData } = supabase.storage
         .from("wedding-share")
         .getPublicUrl("uploads/" + file.name);
@@ -289,6 +294,7 @@
       const isVideo = /\.(mp4|mov|webm)$/i.test(file.name);
 
       const item = { url, isVideo };
+      const index = mediaList.length; // 現在の正しいインデックス
       mediaList.push(item);
 
       if (isVideo) {
