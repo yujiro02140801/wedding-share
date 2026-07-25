@@ -288,6 +288,22 @@
     document.getElementById("modal").style.display = "none";
   });
 
+  // スワイプで閉じる
+let startY = 0;
+
+document.getElementById("modal-img").addEventListener("touchstart", (e) => {
+  startY = e.touches[0].clientY;
+});
+
+document.getElementById("modal-img").addEventListener("touchmove", (e) => {
+  const currentY = e.touches[0].clientY;
+
+  // 下 → 上 に 50px 以上動いたら閉じる
+  if (startY - currentY > 50) {
+    document.getElementById("modal").style.display = "none";
+  }
+});
+
 </script>
 
 </body>
