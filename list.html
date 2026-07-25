@@ -26,12 +26,13 @@
       const gallery = document.getElementById("gallery");
 
       for (const file of data) {
+        // ★ ここが重要：public URL を取得
         const { data: urlData } = supabase.storage
           .from("wedding-share")
           .getPublicUrl("uploads/" + file.name);
 
         const img = document.createElement("img");
-        img.src = urlData.publicUrl;
+        img.src = urlData.publicUrl;   // ← ★絶対にこれを使う
         img.style.width = "200px";
         img.style.margin = "10px";
 
