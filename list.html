@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <h2>アップロードされた写真一覧</h2>
+  <div id="gallery"></div>
+
+  <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+    const supabase = createClient(
+      "https://jqykasmtocwykzaunafp.supabase.co",
+      "sb_publishable_y1QC6bHQOrROInEUhJnGvA_Q8xjkTuU"
+    );
+
+    async function loadImages() {
+      const { data, error } = await supabase.storage
+        .from("wedding-share")
+        .list("uploads", { limit: 100 });
+
+      if (error) {
+        document.getElementById("gallery").innerText =
+          "読み込みエラー: " + error.message;
+        return;
+      }
+
+      const gallery = document.getElementById("gallery");
+
+      for (const file of data) {
+        const { data: urlData } = supabase.storage
+          .from("wedding-share")
+          .getPublicUrl("uploads/" + file.name);
+
+        const img = document.createElement("img");
+        img.src = urlData.publicUrl;
+        img.style.width = "200px";
+        img.style.margin = "10px";
+
+        gallery.appendChild(img);
+      }
+    }
+
+    loadImages();
+  </script>
+</body>
+</html>
