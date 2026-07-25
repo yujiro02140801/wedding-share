@@ -15,7 +15,7 @@
     async function loadImages() {
       const { data, error } = await supabase.storage
         .from("wedding-share")
-        .list("uploads", { limit: 100 });
+        .list("uploads/", { limit: 100 });
 
       if (error) {
         document.getElementById("gallery").innerText =
