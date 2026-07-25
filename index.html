@@ -1,5 +1,109 @@
-<input type="file" id="fileInput">
-<button onclick="upload()">アップロード</button>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Wedding Share</title>
+<style>
+  body {
+    font-family: 'Helvetica', sans-serif;
+    margin: 0;
+    background: #f7f7f7;
+  }
+
+  header {
+    background: linear-gradient(135deg, #ff7eb3, #ff758c);
+    padding: 20px;
+    color: white;
+    text-align: center;
+    font-size: 24px;
+    font-weight: bold;
+  }
+
+  nav {
+    display: flex;
+    justify-content: center;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+
+  nav button {
+    padding: 15px 25px;
+    border: none;
+    background: none;
+    font-size: 18px;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+
+  nav button.active {
+    border-bottom: 3px solid #ff758c;
+    color: #ff758c;
+    font-weight: bold;
+  }
+
+  section {
+    display: none;
+    padding: 20px;
+  }
+
+  section.active {
+    display: block;
+  }
+
+  #gallery img {
+    width: 200px;
+    margin: 10px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  }
+
+  .upload-box {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    max-width: 400px;
+    margin: auto;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    text-align: center;
+  }
+
+  .upload-box input {
+    margin-bottom: 10px;
+  }
+
+  .upload-box button {
+    background: #ff758c;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+  }
+</style>
+</head>
+
+<body>
+
+<header>Wedding Share</header>
+
+<nav>
+  <button id="tab-upload" class="active">アップロード</button>
+  <button id="tab-gallery">写真一覧</button>
+</nav>
+
+<section id="upload-section" class="active">
+  <div class="upload-box">
+    <h3>写真をアップロード</h3>
+    <input type="file" id="fileInput">
+    <button onclick="upload()">アップロード</button>
+  </div>
+</section>
+
+<section id="gallery-section">
+  <h3>アップロードされた写真一覧</h3>
+  <div id="gallery"></div>
+</section>
 
 <script type="module">
   import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -9,14 +113,40 @@
     "sb_publishable_y1QC6bHQOrROInEUhJnGvA_Q8xjkTuU"
   );
 
+  // -------------------------
+  // タブ切り替え
+  // -------------------------
+  const tabUpload = document.getElementById("tab-upload");
+  const tabGallery = document.getElementById("tab-gallery");
+  const uploadSection = document.getElementById("upload-section");
+  const gallerySection = document.getElementById("gallery-section");
+
+  tabUpload.onclick = () => {
+    tabUpload.classList.add("active");
+    tabGallery.classList.remove("active");
+    uploadSection.classList.add("active");
+    gallerySection.classList.remove("active");
+  };
+
+  tabGallery.onclick = () => {
+    tabGallery.classList.add("active");
+    tabUpload.classList.remove("active");
+    gallerySection.classList.add("active");
+    uploadSection.classList.remove("active");
+    loadImages(); // ギャラリー読み込み
+  };
+
+  // -------------------------
+  // アップロード処理
+  // -------------------------
   window.upload = async () => {
     const file = document.getElementById("fileInput").files[0];
     if (!file) return alert("ファイルを選んでください");
 
     const filePath = `uploads/${Date.now()}_${file.name}`;
 
-    const { data, error } = await supabase.storage
-      .from("wedding-share")   // ← ここを修正！
+    const { error } = await supabase.storage
+      .from("wedding-share")
       .upload(filePath, file);
 
     if (error) {
@@ -24,10 +154,37 @@
       return;
     }
 
-    const { data: urlData } = supabase.storage
-      .from("wedding-share")   // ← ここも修正！
-      .getPublicUrl(filePath);
-
-    alert("アップロード完了！\nURL: " + urlData.publicUrl);
+    alert("アップロード完了！");
   };
+
+  // -------------------------
+  // ギャラリー読み込み
+  // -------------------------
+  async function loadImages() {
+    const { data, error } = await supabase.storage
+      .from("wedding-share")
+      .list("uploads/", { limit: 200 });
+
+    if (error) {
+      document.getElementById("gallery").innerText =
+        "読み込みエラー: " + error.message;
+      return;
+    }
+
+    const gallery = document.getElementById("gallery");
+    gallery.innerHTML = ""; // 初期化
+
+    for (const file of data) {
+      const { data: urlData } = supabase.storage
+        .from("wedding-share")
+        .getPublicUrl("uploads/" + file.name);
+
+      const img = document.createElement("img");
+      img.src = urlData.publicUrl;
+      gallery.appendChild(img);
+    }
+  }
 </script>
+
+</body>
+</html>
