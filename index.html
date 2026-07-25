@@ -132,6 +132,22 @@
     cursor: pointer;
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
   }
+
+  /* ローディングスピナー */
+  .spinner {
+    border: 6px solid #f3f3f3;
+    border-top: 6px solid #ff758c;
+    border-radius: 50%;
+    width: 45px;
+    height: 45px;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
 </style>
 </head>
 
@@ -148,7 +164,13 @@
   <div class="upload-box">
     <h3>写真をアップロード</h3>
     <input type="file" id="fileInput" multiple>
-    <button onclick="upload()">アップロード</button>
+    <button id="uploadBtn" onclick="upload()">アップロード</button>
+
+    <!-- くるくるスピナー -->
+    <div id="uploadSpinner" style="display:none;">
+      <div class="spinner"></div>
+      <p>アップロード中…</p>
+    </div>
   </div>
 </section>
 
@@ -160,7 +182,7 @@
 <!-- モーダル -->
 <div id="modal" onclick="closeModal()">
   <div id="modal-content" onclick="event.stopPropagation()">
-    <div id="modal-close" onclick="closeModal()">×</div>
+    <div id="modal-close" onclick="event.stopPropagation(); closeModal();">×</div>
     <img id="modal-img">
   </div>
 </div>
@@ -197,14 +219,18 @@
   };
 
   // -------------------------
-  // 元の軽いアップロード処理（複数対応）
+  // アップロード処理（軽い元のバージョン＋くるくる）
   // -------------------------
   window.upload = async () => {
     const files = document.getElementById("fileInput").files;
+    const uploadBtn = document.getElementById("uploadBtn");
+    const spinner = document.getElementById("uploadSpinner");
+
     if (!files.length) return alert("ファイルを選んでください");
 
-    let count = 1;
-    const total = files.length;
+    // UIローディング開始
+    uploadBtn.style.display = "none";
+    spinner.style.display = "block";
 
     for (const file of files) {
       const filePath = `uploads/${Date.now()}_${file.name}`;
@@ -215,11 +241,15 @@
 
       if (error) {
         alert("アップロード失敗: " + error.message);
+        uploadBtn.style.display = "block";
+        spinner.style.display = "none";
         return;
       }
-
-      count++;
     }
+
+    // 完了
+    spinner.style.display = "none";
+    uploadBtn.style.display = "block";
 
     alert("アップロード完了！");
   };
