@@ -84,16 +84,18 @@
     justify-content: center;
   }
 
-  #gallery img {
+  #gallery img,
+  #gallery video {
     width: 45%;
     max-width: 180px;
     margin: 10px;
     border-radius: 12px;
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     cursor: pointer;
+    object-fit: cover;
   }
 
-  /* モーダル（絶対に後ろにタップが抜けない） */
+  /* モーダル（画像・動画拡大表示） */
   #modal {
     display: none;
     position: fixed;
@@ -103,22 +105,29 @@
     justify-content: center;
     align-items: center;
     z-index: 99999;
-
-    /* ★ 後ろの画面を完全にブロックする */
     pointer-events: auto;
   }
 
   #modal-inner {
-    pointer-events: none; /* 内側は一旦無効化 */
+    pointer-events: none;
+    max-width: 90%;
+    max-height: 90%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
 
-  #modal-img {
-    width: 90%;
-    max-width: 600px;
-    border-radius: 12px;
-
-    /* ★ 画像だけタップ可能にする */
+  #modal-img,
+  #modal-video {
     pointer-events: auto;
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 12px;
+    background: black;
+  }
+
+  #modal-video {
+    width: 100%;
   }
 
   /* ローディングスピナー */
@@ -150,7 +159,7 @@
 
 <section id="upload-section" class="active">
   <div class="upload-box">
-    <h3>写真をアップロード</h3>
+    <h3>写真・動画をアップロード</h3>
     <input type="file" id="fileInput" multiple>
     <button id="uploadBtn" onclick="upload()">アップロード</button>
 
@@ -163,14 +172,15 @@
 </section>
 
 <section id="gallery-section">
-  <h3>アップロードされた写真一覧</h3>
+  <h3>アップロードされた写真・動画一覧</h3>
   <div id="gallery"></div>
 </section>
 
-<!-- モーダル（背景タップで閉じる） -->
+<!-- モーダル（画像・動画拡大表示） -->
 <div id="modal">
   <div id="modal-inner">
-    <img id="modal-img">
+    <img id="modal-img" style="display:none;">
+    <video id="modal-video" controls playsinline style="display:none;"></video>
   </div>
 </div>
 
@@ -206,7 +216,7 @@
   };
 
   // -------------------------
-  // アップロード処理（軽い元のバージョン＋くるくる）
+  // アップロード処理（くるくる付き）
   // -------------------------
   window.upload = async () => {
     const files = document.getElementById("fileInput").files;
@@ -240,7 +250,7 @@
   };
 
   // -------------------------
-  // ギャラリー読み込み
+  // ギャラリー読み込み（画像＋動画）
   // -------------------------
   async function loadImages() {
     const { data, error } = await supabase.storage
@@ -261,49 +271,95 @@
         .from("wedding-share")
         .getPublicUrl("uploads/" + file.name);
 
-      const img = document.createElement("img");
-      img.src = urlData.publicUrl;
+      const url = urlData.publicUrl;
+      const isVideo = /\.(mp4|mov|webm)$/i.test(file.name);
 
-      img.onclick = () => openModal(urlData.publicUrl);
-
-      gallery.appendChild(img);
+      if (isVideo) {
+        const video = document.createElement("video");
+        video.src = url;
+        video.muted = true;
+        video.playsInline = true;
+        video.loop = true;
+        video.autoplay = true;
+        video.addEventListener("click", () => openModal(url, true));
+        gallery.appendChild(video);
+      } else {
+        const img = document.createElement("img");
+        img.src = url;
+        img.addEventListener("click", () => openModal(url, false));
+        gallery.appendChild(img);
+      }
     }
   }
 
   // -------------------------
-  // モーダル（拡大画像）
+  // モーダル（画像・動画拡大表示）
   // -------------------------
-  function openModal(url) {
-    const modal = document.getElementById("modal");
-    const img = document.getElementById("modal-img");
+  const modal = document.getElementById("modal");
+  const modalImg = document.getElementById("modal-img");
+  const modalVideo = document.getElementById("modal-video");
+  const modalInner = document.getElementById("modal-inner");
 
-    img.src = url;
+  function openModal(url, isVideo = false) {
+    if (isVideo) {
+      modalImg.style.display = "none";
+      modalVideo.style.display = "block";
+      modalVideo.src = url;
+      modalVideo.load();
+      modalVideo.play();
+    } else {
+      modalVideo.pause();
+      modalVideo.style.display = "none";
+      modalImg.style.display = "block";
+      modalImg.src = url;
+    }
     modal.style.display = "flex";
   }
 
-  // -------------------------
-  // モーダル閉じる（背景タップで閉じる）
-  // -------------------------
-  document.getElementById("modal").addEventListener("click", () => {
-    document.getElementById("modal").style.display = "none";
+  function closeModal() {
+    modal.style.display = "none";
+    modalVideo.pause();
+  }
+
+  // 背景タップで閉じる
+  modal.addEventListener("click", () => {
+    closeModal();
   });
 
-  // スワイプで閉じる
-let startY = 0;
+  // 中身タップは閉じない（動画操作できるように）
+  modalInner.addEventListener("click", (e) => {
+    e.stopPropagation();
+  });
 
-document.getElementById("modal-img").addEventListener("touchstart", (e) => {
-  startY = e.touches[0].clientY;
-});
+  // -------------------------
+  // スワイプで閉じる（画像・動画の上で上方向スワイプ）
+  // -------------------------
+  let startY = null;
 
-document.getElementById("modal-img").addEventListener("touchmove", (e) => {
-  const currentY = e.touches[0].clientY;
+  function attachSwipeClose(el) {
+    el.addEventListener("touchstart", (e) => {
+      if (e.touches.length > 0) {
+        startY = e.touches[0].clientY;
+      }
+    });
 
-  // 下 → 上 に 50px 以上動いたら閉じる
-  if (startY - currentY > 50) {
-    document.getElementById("modal").style.display = "none";
+    el.addEventListener("touchmove", (e) => {
+      if (startY === null) return;
+      const currentY = e.touches[0].clientY;
+      if (startY - currentY > 50) {
+        // 上方向に50px以上スワイプしたら閉じる
+        closeModal();
+        startY = null;
+      }
+    });
+
+    el.addEventListener("touchend", () => {
+      startY = null;
+    });
   }
-});
 
+  attachSwipeClose(modalImg);
+  attachSwipeClose(modalVideo);
 </script>
 
 </body>
