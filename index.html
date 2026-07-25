@@ -113,6 +113,7 @@
     max-width: 90%;
     max-height: 90%;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     position: relative;
@@ -131,14 +132,17 @@
     width: 100%;
   }
 
-  /* 動画保存用の透明リンク */
-  #video-save-link {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    z-index: 999999;
+  /* 動画保存ボタン */
+  #save-video-btn {
+    display: none;
+    margin-top: 15px;
+    background: #ff758c;
+    color: white;
+    padding: 12px 25px;
+    border-radius: 8px;
+    font-size: 20px;
     pointer-events: auto;
-    opacity: 0;
+    cursor: pointer;
   }
 
   /* ローディングスピナー */
@@ -192,8 +196,8 @@
     <img id="modal-img" style="display:none;">
     <video id="modal-video" controls playsinline style="display:none;"></video>
 
-    <!-- 動画保存用透明リンク -->
-    <a id="video-save-link" href="" download></a>
+    <!-- 動画保存ボタン -->
+    <a id="save-video-btn" download>動画を保存</a>
   </div>
 </div>
 
@@ -299,7 +303,7 @@
   const modalImg = document.getElementById("modal-img");
   const modalVideo = document.getElementById("modal-video");
   const modalInner = document.getElementById("modal-inner");
-  const videoSaveLink = document.getElementById("video-save-link");
+  const saveVideoBtn = document.getElementById("save-video-btn");
 
   function openModal(url, isVideo = false) {
     if (isVideo) {
@@ -309,15 +313,15 @@
       modalVideo.load();
       modalVideo.play();
 
-      videoSaveLink.href = url;
-      videoSaveLink.style.display = "block";
+      saveVideoBtn.href = url;
+      saveVideoBtn.style.display = "inline-block";
     } else {
       modalVideo.pause();
       modalVideo.style.display = "none";
       modalImg.style.display = "block";
       modalImg.src = url;
 
-      videoSaveLink.style.display = "none";
+      saveVideoBtn.style.display = "none";
     }
     modal.style.display = "flex";
   }
