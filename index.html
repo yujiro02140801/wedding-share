@@ -373,23 +373,36 @@
     if (e.target === modal) closeModal();
   });
 
-  // 動画共有・ダウンロードの処理（Web Share API / 直接保存）
+  // 動画保存・共有の処理（ファイルをデータ化して渡すことで「ビデオを保存」を表示）
   saveVideoBtn.addEventListener("click", async () => {
     const currentItem = mediaList[currentIndex];
     if (!currentItem || !currentItem.isVideo) return;
 
-    if (navigator.share) {
-      try {
+    const originalText = saveVideoBtn.innerText;
+    saveVideoBtn.innerText = "動画を準備中…";
+    saveVideoBtn.disabled = true;
+
+    try {
+      // 動画データをBlob（ファイル形式）として取得
+      const response = await fetch(currentItem.url);
+      const blob = await response.blob();
+      const file = new File([blob], `wedding_video_${Date.now()}.mp4`, { type: blob.type || "video/mp4" });
+
+      // Web Share API で「ファイルそのもの」を共有
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
-          title: '動画を保存・共有',
-          url: currentItem.url
+          files: [file]
         });
-      } catch (err) {
-        console.log('共有がキャンセルまたは失敗しました:', err);
+      } else {
+        // Web Share 非対応環境の場合、別タブで開く
+        window.open(currentItem.url, '_blank');
       }
-    } else {
-      // 共有機能が非対応の場合はブラウザで動画を直接開く
-      window.open(currentItem.url, '_blank');
+    } catch (err) {
+      console.error(err);
+      alert("動画の準備に失敗しました。時間をおいて再試行してください。");
+    } finally {
+      saveVideoBtn.innerText = originalText;
+      saveVideoBtn.disabled = false;
     }
   });
 
