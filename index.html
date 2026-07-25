@@ -110,6 +110,22 @@
     max-width: 600px;
     border-radius: 12px;
   }
+
+  /* ローディングスピナー */
+  .spinner {
+    border: 6px solid #f3f3f3;
+    border-top: 6px solid #ff758c;
+    border-radius: 50%;
+    width: 45px;
+    height: 45px;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
 </style>
 </head>
 
@@ -127,6 +143,10 @@
     <h3>写真をアップロード</h3>
     <input type="file" id="fileInput" multiple>
     <button id="uploadBtn" onclick="upload()">アップロード</button>
+    <div id="uploadSpinner" style="display:none;">
+      <div class="spinner"></div>
+      <p>アップロード中…</p>
+    </div>
   </div>
 </section>
 
@@ -144,3 +164,118 @@
   import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
   const supabase = createClient(
+    "https://jqykasmtocwykzaunafp.supabase.co",
+    "sb_publishable_y1QC6bHQOrROInEUhJnGvA_Q8xjkTuU"
+  );
+
+  // -------------------------
+  // タブ切り替え
+  // -------------------------
+  const tabUpload = document.getElementById("tab-upload");
+  const tabGallery = document.getElementById("tab-gallery");
+  const uploadSection = document.getElementById("upload-section");
+  const gallerySection = document.getElementById("gallery-section");
+
+  tabUpload.onclick = () => {
+    tabUpload.classList.add("active");
+    tabGallery.classList.remove("active");
+    uploadSection.classList.add("active");
+    gallerySection.classList.remove("active");
+  };
+
+  tabGallery.onclick = () => {
+    tabGallery.classList.add("active");
+    tabUpload.classList.remove("active");
+    gallerySection.classList.add("active");
+    uploadSection.classList.remove("active");
+    loadImages();
+  };
+
+  // -------------------------
+  // 複数アップロード（ローディング＋自動リロード）
+  // -------------------------
+  window.upload = async () => {
+    const files = document.getElementById("fileInput").files;
+    const uploadBtn = document.getElementById("uploadBtn");
+    const spinner = document.getElementById("uploadSpinner");
+
+    if (!files.length) return alert("ファイルを選んでください");
+
+    // UIローディング開始
+    uploadBtn.style.display = "none";
+    spinner.style.display = "block";
+
+    let count = 1;
+    const total = files.length;
+
+    for (const file of files) {
+      const filePath = `uploads/${Date.now()}_${file.name}`;
+
+      const { error } = await supabase.storage
+        .from("wedding-share")
+        .upload(filePath, file);
+
+      if (error) {
+        alert("アップロード失敗: " + error.message);
+        uploadBtn.style.display = "block";
+        spinner.style.display = "none";
+        return;
+      }
+
+      count++;
+    }
+
+    // 完了
+    spinner.style.display = "none";
+    uploadBtn.style.display = "block";
+
+    // 自動で写真一覧へ移動
+    tabGallery.click();
+  };
+
+  // -------------------------
+  // ギャラリー読み込み
+  // -------------------------
+  async function loadImages() {
+    const { data, error } = await supabase.storage
+      .from("wedding-share")
+      .list("uploads/", { limit: 200 });
+
+    if (error) {
+      document.getElementById("gallery").innerText =
+        "読み込みエラー: " + error.message;
+      return;
+    }
+
+    const gallery = document.getElementById("gallery");
+    gallery.innerHTML = "";
+
+    for (const file of data) {
+      const { data: urlData } = supabase.storage
+        .from("wedding-share")
+        .getPublicUrl("uploads/" + file.name);
+
+      const img = document.createElement("img");
+      img.src = urlData.publicUrl;
+
+      img.onclick = () => openModal(urlData.publicUrl);
+
+      gallery.appendChild(img);
+    }
+  }
+
+  // -------------------------
+  // モーダル（拡大画像）
+  // -------------------------
+  function openModal(url) {
+    document.getElementById("modal-img").src = url;
+    document.getElementById("modal").style.display = "flex";
+  }
+
+  function closeModal() {
+    document.getElementById("modal").style.display = "none";
+  }
+</script>
+
+</body>
+</html>
