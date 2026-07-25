@@ -16,7 +16,7 @@
     const filePath = `uploads/${Date.now()}_${file.name}`;
 
     const { data, error } = await supabase.storage
-      .from("photos")
+      .from("wedding-share")   // ← ここを修正！
       .upload(filePath, file);
 
     if (error) {
@@ -25,7 +25,7 @@
     }
 
     const { data: urlData } = supabase.storage
-      .from("photos")
+      .from("wedding-share")   // ← ここも修正！
       .getPublicUrl(filePath);
 
     alert("アップロード完了！\nURL: " + urlData.publicUrl);
