@@ -1,0 +1,33 @@
+<input type="file" id="fileInput">
+<button onclick="upload()">アップロード</button>
+
+<script type="module">
+  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+  const supabase = createClient(
+    "https://jqykasmtocwykzaunafp.supabase.coL",
+    "sb_publishable_y1QC6bHQOrROInEUhJnGvA_Q8xjkTuU"
+  );
+
+  window.upload = async () => {
+    const file = document.getElementById("fileInput").files[0];
+    if (!file) return alert("ファイルを選んでください");
+
+    const filePath = `uploads/${Date.now()}_${file.name}`;
+
+    const { data, error } = await supabase.storage
+      .from("photos")
+      .upload(filePath, file);
+
+    if (error) {
+      alert("アップロード失敗: " + error.message);
+      return;
+    }
+
+    const { data: urlData } = supabase.storage
+      .from("photos")
+      .getPublicUrl(filePath);
+
+    alert("アップロード完了！\nURL: " + urlData.publicUrl);
+  };
+</script>
